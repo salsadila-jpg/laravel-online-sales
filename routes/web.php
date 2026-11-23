@@ -7,20 +7,31 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 
 use App\Http\Controllers\ProductCatalogController;
+use App\Http\Controllers\CartController;
+
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Admin\StockController;
 use App\Http\Controllers\Admin\ShippingServiceController;
 
-// Halaman utama: katalog produk
+/*
+|--------------------------------------------------------------------------
+| Storefront / Katalog Produk
+|--------------------------------------------------------------------------
+*/
+
 Route::get('/', [ProductCatalogController::class, 'index'])
     ->name('shop.index');
 
-// Detail produk berdasarkan slug
 Route::get('/produk/{product:slug}', [ProductCatalogController::class, 'show'])
     ->name('shop.show');
 
-// Login
+/*
+|--------------------------------------------------------------------------
+| Login
+|--------------------------------------------------------------------------
+*/
+
 Route::get('/login', function () {
     return view('auth.login');
 })->middleware('guest')->name('login');
@@ -42,7 +53,12 @@ Route::post('/login', function (Request $request) {
     ])->onlyInput('email');
 })->middleware('guest')->name('login.process');
 
-// Register
+/*
+|--------------------------------------------------------------------------
+| Register
+|--------------------------------------------------------------------------
+*/
+
 Route::get('/register', function () {
     return view('auth.register');
 })->middleware('guest')->name('register');
@@ -58,7 +74,7 @@ Route::post('/register', function (Request $request) {
         'name' => $data['name'],
         'email' => $data['email'],
         'password' => Hash::make($data['password']),
-        'role' => 'user',
+        'role' => 'customer',
     ]);
 
     Auth::login($user);
@@ -66,12 +82,22 @@ Route::post('/register', function (Request $request) {
     return redirect()->route('dashboard');
 })->middleware('guest')->name('register.process');
 
-// Dashboard
+/*
+|--------------------------------------------------------------------------
+| Dashboard
+|--------------------------------------------------------------------------
+*/
+
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware('auth')->name('dashboard');
 
-// Logout
+/*
+|--------------------------------------------------------------------------
+| Logout
+|--------------------------------------------------------------------------
+*/
+
 Route::post('/logout', function (Request $request) {
     Auth::logout();
 
@@ -81,7 +107,32 @@ Route::post('/logout', function (Request $request) {
     return redirect()->route('login');
 })->middleware('auth')->name('logout');
 
-// Admin
+/*
+|--------------------------------------------------------------------------
+| Shopping Cart - M5.3
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth', 'role:customer'])->group(function () {
+    Route::get('/keranjang', [CartController::class, 'index'])
+        ->name('cart.index');
+
+    Route::post('/keranjang/{product}', [CartController::class, 'store'])
+        ->name('cart.store');
+
+    Route::patch('/keranjang/{product}', [CartController::class, 'update'])
+        ->name('cart.update');
+
+    Route::delete('/keranjang/{product}', [CartController::class, 'destroy'])
+        ->name('cart.destroy');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Admin
+|--------------------------------------------------------------------------
+*/
+
 Route::prefix('admin')
     ->name('admin.')
     ->middleware(['auth', 'role:admin'])
@@ -100,7 +151,7 @@ Route::prefix('admin')
         Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])
             ->name('categories.destroy');
 
-        // Produk admin
+        // Produk
         Route::resource('products', AdminProductController::class)
             ->except('show');
 
@@ -114,7 +165,7 @@ Route::prefix('admin')
         Route::post('/stock', [StockController::class, 'store'])
             ->name('stock.store');
 
-        // Layanan ekspedisi
+        // Layanan Ekspedisi
         Route::get('/shipping', [ShippingServiceController::class, 'index'])
             ->name('shipping.index');
 
