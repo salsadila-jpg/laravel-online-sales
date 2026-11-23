@@ -6,24 +6,19 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 
+use App\Http\Controllers\ProductCatalogController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Admin\StockController;
 use App\Http\Controllers\Admin\ShippingServiceController;
 
-// Halaman utama
-Route::get('/', function () {
-    if (Auth::check()) {
-        return redirect()->route('dashboard');
-    }
+// Halaman utama: katalog produk
+Route::get('/', [ProductCatalogController::class, 'index'])
+    ->name('shop.index');
 
-    return redirect()->route('login');
-})->name('home');
-
-// Halaman katalog toko
-Route::get('/shop', function () {
-    return view('shop.index');
-})->name('shop.index');
+// Detail produk berdasarkan slug
+Route::get('/produk/{product:slug}', [ProductCatalogController::class, 'show'])
+    ->name('shop.show');
 
 // Login
 Route::get('/login', function () {
@@ -105,7 +100,7 @@ Route::prefix('admin')
         Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])
             ->name('categories.destroy');
 
-        // Produk
+        // Produk admin
         Route::resource('products', AdminProductController::class)
             ->except('show');
 
