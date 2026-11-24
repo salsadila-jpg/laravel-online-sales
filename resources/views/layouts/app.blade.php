@@ -1,105 +1,152 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Belanja kebutuhan sehari-hari dengan pilihan produk, stok yang jelas, dan pengiriman yang mudah.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>@yield('title', 'Katalog') · Ruang Belanja</title>
+    <title>@yield('title', 'Online Sales')</title>
 
+    {{-- Font Inter --}}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    {{-- CSS Utama --}}
     <link rel="stylesheet" href="{{ asset('css/store.css') }}">
+
+    {{-- CSS Tambahan --}}
+    @stack('styles')
 </head>
+
 <body>
 
+    {{-- TOP NOTE --}}
     <div class="top-note">
-        Pilihan sederhana. Belanja lebih nyaman.
+        Online Sales - Pilihan untuk Keseharian
     </div>
 
+    {{-- HEADER / NAVBAR --}}
     <header class="site-header">
-        <nav class="container nav" aria-label="Navigasi utama">
+        <div class="container nav">
 
-            <a class="brand" href="{{ route('shop.index') }}">
-                <span class="brand-mark" aria-hidden="true">↗</span>
-                ruangbelanja<span style="color:#7aa487">.</span>
+            {{-- BRAND --}}
+            <a href="{{ route('home') }}" class="brand">
+                <span class="brand-mark">O</span>
+                <span>Online Sales</span>
+            </a>
+
+            {{-- MENU NAVIGASI --}}
+            <a href="{{ route('home') }}"
+               @if (request()->routeIs('home')) aria-current="page" @endif>
+                Beranda
             </a>
 
             <a href="{{ route('shop.index') }}"
-               @if(request()->routeIs('shop.*')) aria-current="page" @endif>
-                Jelajahi Produk
+               @if (request()->routeIs('shop.*')) aria-current="page" @endif>
+                Produk
             </a>
 
+            {{-- KERANJANG --}}
+            <a href="{{ route('cart.index') }}"
+               @if (request()->routeIs('cart.*')) aria-current="page" @endif>
+                Keranjang
+                ({{ collect(session('cart', []))->sum('quantity') }})
+            </a>
+
+            {{-- MENU PENGGUNA --}}
             @auth
 
-                @if(auth()->user()->role === 'customer')
+                @if (auth()->user()->role === 'admin')
 
-                    @if(Route::has('cart.index'))
-                        <a href="{{ route('cart.index') }}"
-                           @if(request()->routeIs('cart.*')) aria-current="page" @endif>
-                            Keranjang ({{ array_sum(session('cart', [])) }})
-                        </a>
-                    @endif
-
-                    @if(Route::has('orders.index'))
-                        <a href="{{ route('orders.index') }}"
-                           @if(request()->routeIs('orders.*')) aria-current="page" @endif>
-                            Pesanan
-                        </a>
-                    @endif
+                    <a href="{{ route('admin.dashboard') }}"
+                       @if (request()->routeIs('admin.dashboard')) aria-current="page" @endif>
+                        Dashboard
+                    </a>
 
                 @else
 
-                    @if(Route::has('admin.dashboard'))
-                        <a href="{{ route('admin.dashboard') }}"
-                           @if(request()->routeIs('admin.*')) aria-current="page" @endif>
-                            Dashboard Admin
-                        </a>
-                    @endif
+                    <a href="{{ route('orders.index') }}"
+                       @if (request()->routeIs('orders.*')) aria-current="page" @endif>
+                        Pesanan Saya
+                    </a>
+
+                    <a href="{{ route('profile.edit') }}"
+                       @if (request()->routeIs('profile.*')) aria-current="page" @endif>
+                        Profil
+                    </a>
 
                 @endif
 
                 <span class="account">
-                    Halo, {{ auth()->user()->name }}
+                    {{ auth()->user()->name }}
                 </span>
 
-                @if(Route::has('logout'))
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="btn-light">
-                            Keluar
-                        </button>
-                    </form>
-                @endif
+                {{-- LOGOUT --}}
+                <form action="{{ route('logout') }}" method="POST">
+                    @csrf
 
-            @else
-
-                @if(Route::has('login'))
-                    <a href="{{ route('login') }}">Masuk</a>
-                @endif
-
-                @if(Route::has('register'))
-                    <a class="btn" href="{{ route('register') }}">Daftar</a>
-                @endif
+                    <button type="submit" class="btn-danger">
+                        Logout
+                    </button>
+                </form>
 
             @endauth
 
-        </nav>
+        </div>
     </header>
 
-    <main class="container">
+    {{-- KONTEN UTAMA --}}
+    <main>
+        <div class="container">
 
-        @include('layouts.flash')
+            {{-- NOTIFIKASI BERHASIL --}}
+            @if (session('success'))
+                <div class="alert">
+                    {{ session('success') }}
+                </div>
+            @endif
 
-        @yield('content')
+            {{-- NOTIFIKASI ERROR --}}
+            @if (session('error'))
+                <div class="alert error">
+                    {{ session('error') }}
+                </div>
+            @endif
 
+            {{-- VALIDASI ERROR --}}
+            @if ($errors->any())
+                <div class="alert error">
+                    <strong>Terjadi kesalahan:</strong>
+
+                    <ul>
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            {{-- ISI HALAMAN --}}
+            @yield('content')
+
+        </div>
     </main>
 
+    {{-- FOOTER --}}
     <footer class="container footer">
-        <strong>ruangbelanja.</strong>
-        <span>Proyek praktikum Laravel · Admin & Pelanggan</span>
-        <span>Belanja dengan informasi yang jelas.</span>
+        <div>
+            &copy; {{ date('Y') }} Online Sales.
+            All rights reserved.
+        </div>
+
+        <div>
+            Belanja mudah, aman, dan nyaman.
+        </div>
     </footer>
 
-    <script src="{{ asset('js/store.js') }}" defer></script>
+    {{-- JAVASCRIPT --}}
+    @stack('scripts')
 
 </body>
 </html>
