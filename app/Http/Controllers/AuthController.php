@@ -2,71 +2,47 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AuthController extends Controller
 {
-    public function showLogin(): 
+    /**
+     * Menampilkan halaman login.
+     */
+    public function showLogin(): View
     {
         return view('auth.login');
     }
 
+    /**
+     * Memproses login pengguna.
+     */
     public function login(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
             'email' => ['required', 'email'],
-            'password' => ['required'],
+            'password' => ['required', 'string'],
         ]);
 
-        if (! Auth::attempt($credentials)) {
-            return back()->withErrors(['email' => 'Email atau password tidak sesuai.'])->onlyInput('email');
+        if (!Auth::attempt($credentials)) {
+            throw ValidationException::withMessages([
+                'email' => 'Email atau password yang dimasukkan salah.',
+            ]);
         }
 
+        // Regenerasi session setelah login berhasil.
         $request->session()->regenerate();
 
-        return $request->user()->role === 'admin'
-            ? redirect()->route('admin.dashboard')
-            : redirect()->intended(route('shop.index'));
-    }
+        // Arahkan berdasarkan role pengguna.
+        if (Auth::user()->role === 'admin') {
+            return redirect()->route('admin.dashboard');
+        }
 
-    public function showRegister(): View
-    {
-        return view('auth.register');
-    }
-
-    public function register(Request $request): RedirectResponse
-    {
-        $data = $request->validate([
-            'name' => ['required', 'max:120'],
-            'email' => ['required', 'email', 'max:150', 'unique:users,email'],
-            'password' => ['required', 'confirmed', Password::min(8)],
-        ]);
-
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'role' => 'customer',
-        ]);
-
-        Auth::login($user);
-        $request->session()->regenerate();
-
-        return redirect()->route('shop.index');
-    }
-
-    public function logout(Request $request): RedirectResponse
-    {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return redirect()->route('shop.index');
+        // Customer langsung menuju katalog produk.
+        return redirect()->intended(route('shop.index'));
     }
 }

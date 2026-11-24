@@ -3,111 +3,130 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class CartController extends Controller
 {
+    // Menampilkan halaman keranjang
     public function index(Request $request): View
     {
-        return view('cart.index', $this->cartData($request));
+        $cart = $request->session()->get('cart', []);
+
+        $items = collect($cart)->map(function ($item) {
+            $item['subtotal'] = $item['price'] * $item['quantity'];
+
+            return $item;
+        });
+
+        $total = $items->sum('subtotal');
+
+        return view('cart.index', [
+            'items' => $items,
+            'total' => $total,
+        ]);
     }
 
+    // Menambahkan produk ke keranjang
     public function store(
         Request $request,
         Product $product
     ): RedirectResponse {
+
         abort_unless($product->is_active, 404);
 
-        $data = $request->validate([
+        $validated = $request->validate([
             'quantity' => ['required', 'integer', 'min:1'],
         ]);
 
-        $cart = $request->session()->get('cart', []);
+        $quantity = $validated['quantity'];
 
-        $newQty = ($cart[$product->id] ?? 0)
-            + $data['quantity'];
-
-        if ($newQty > $product->stock) {
-            return back()->withErrors([
-                'quantity' => 'Jumlah melebihi stok yang tersedia.',
-            ]);
+        if ($product->stock < $quantity) {
+            return back()->with(
+                'error',
+                'Stok produk tidak mencukupi.'
+            );
         }
 
-        $cart[$product->id] = $newQty;
+        $cart = $request->session()->get('cart', []);
+
+        $currentQuantity = $cart[$product->id]['quantity'] ?? 0;
+
+        if ($currentQuantity + $quantity > $product->stock) {
+            return back()->with(
+                'error',
+                'Jumlah produk melebihi stok tersedia.'
+            );
+        }
+
+        $cart[$product->id] = [
+            'product_id' => $product->id,
+            'name' => $product->name,
+            'price' => $product->price,
+            'image' => $product->image,
+            'quantity' => $currentQuantity + $quantity,
+        ];
 
         $request->session()->put('cart', $cart);
 
         return redirect()
             ->route('cart.index')
-            ->with('success', 'Produk ditambahkan ke keranjang.');
+            ->with(
+                'success',
+                'Produk berhasil ditambahkan ke keranjang.'
+            );
     }
 
+    // Mengubah jumlah produk
     public function update(
         Request $request,
-        Product $product
+        int $productId
     ): RedirectResponse {
-        $data = $request->validate([
+
+        $cart = $request->session()->get('cart', []);
+
+        if (!isset($cart[$productId])) {
+            return back()->with('error', 'Produk tidak ditemukan.');
+        }
+
+        $validated = $request->validate([
             'quantity' => ['required', 'integer', 'min:1'],
         ]);
 
-        if ($data['quantity'] > $product->stock) {
-            return back()->withErrors([
-                'quantity' => "Stok {$product->name} hanya {$product->stock}.",
-            ]);
+        $product = Product::findOrFail($productId);
+
+        if ($validated['quantity'] > $product->stock) {
+            return back()->with('error', 'Stok produk tidak mencukupi.');
         }
 
-        $cart = $request->session()->get('cart', []);
-
-        $cart[$product->id] = $data['quantity'];
+        $cart[$productId]['quantity'] = $validated['quantity'];
 
         $request->session()->put('cart', $cart);
 
-        return back()->with('success', 'Keranjang diperbarui.');
+        return back()->with('success', 'Keranjang berhasil diperbarui.');
     }
 
+    // Menghapus produk dari keranjang
     public function destroy(
         Request $request,
-        Product $product
+        int $productId
     ): RedirectResponse {
+
         $cart = $request->session()->get('cart', []);
 
-        unset($cart[$product->id]);
+        unset($cart[$productId]);
 
         $request->session()->put('cart', $cart);
 
-        return back()->with('success', 'Produk dihapus dari keranjang.');
+        return back()->with('success', 'Produk berhasil dihapus.');
     }
 
-    private function cartData(Request $request): array
+    // Mengosongkan keranjang
+    public function clear(Request $request): RedirectResponse
     {
-        $cart = $request->session()->get('cart', []);
+        $request->session()->forget('cart');
 
-        $products = Product::whereIn('id', array_keys($cart))
-            ->get()
-            ->keyBy('id');
-
-        $items = collect();
-        $subtotal = 0;
-
-        foreach ($cart as $productId => $quantity) {
-            $product = $products->get($productId);
-
-            if (! $product) {
-                continue;
-            }
-
-            $lineTotal = (float) $product->price * $quantity;
-            $subtotal += $lineTotal;
-
-            $items->push(compact(
-                'product',
-                'quantity',
-                'lineTotal'
-            ));
-        }
-
-        return compact('items', 'subtotal');
+        return back()->with('success', 'Keranjang berhasil dikosongkan.');
     }
 }

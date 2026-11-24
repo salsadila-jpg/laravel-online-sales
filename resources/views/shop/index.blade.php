@@ -3,139 +3,174 @@
 @section('title', 'Pilihan untuk keseharian')
 
 @section('content')
+
+{{-- HERO SECTION --}}
 <section class="hero">
-    <div>
+    <div class="hero-content">
         <span class="eyebrow">PILIHAN UNTUK KESEHARIAN</span>
 
-        <h1>Hal kecil yang bikin<br>harimu lebih nyaman.</h1>
+        <h1>Hal kecil yang bikin<br>hari kamu lebih nyaman.</h1>
 
         <p>
             Temukan kebutuhan rumah, aksesori, dan elektronik pilihan.
+            <br>
             Harga jelas, stok tersedia, siap menemani aktivitasmu.
         </p>
 
-        <div class="hero-bottom">
+        <div class="hero-features">
             <span>Informasi stok langsung</span>
             <span>Pilihan ekspedisi</span>
             <span>Riwayat pesanan lengkap</span>
         </div>
     </div>
 
-    <div class="hero-art" aria-hidden="true">⌨ ◉</div>
+    <div class="hero-visual">
+        <div class="hero-icon">⌨️</div>
+        <div class="hero-icon">🖱️</div>
+    </div>
 </section>
 
+
+{{-- JUDUL DAN JUMLAH PRODUK --}}
 <div class="section-heading">
     <h2>Temukan pilihanmu</h2>
+
     <span class="muted">
         {{ $products->total() }} produk ditemukan
     </span>
 </div>
 
-<div class="card filters">
-    <form method="GET" action="{{ route('shop.index') }}">
-        <div class="row">
-            <label style="flex: 2">
-                Cari produk
-                <input
-                    type="text"
-                    name="q"
-                    value="{{ request('q') }}"
-                    placeholder="Nama produk atau SKU"
-                >
-            </label>
 
-            <label>
-                Kategori
-                <select name="category">
+{{-- FILTER PRODUK --}}
+<div class="card filters">
+    <form action="{{ route('shop.index') }}" method="GET">
+
+        <div class="filter-grid">
+
+            {{-- SEARCH --}}
+            <div class="filter-group">
+                <label for="search">Cari produk</label>
+
+                <input
+                    type="search"
+                    id="search"
+                    name="search"
+                    placeholder="Cari nama atau SKU produk..."
+                    value="{{ request('search', $search ?? '') }}"
+                >
+            </div>
+
+            {{-- KATEGORI --}}
+            <div class="filter-group">
+                <label for="category">Kategori</label>
+
+                <select name="category" id="category">
                     <option value="">Semua kategori</option>
 
-                    @foreach($categories as $category)
+                    @foreach($categories ?? [] as $category)
                         <option
                             value="{{ $category->id }}"
-                            @selected(request('category') == $category->id)
+                            {{ request('category') == $category->id ? 'selected' : '' }}
                         >
                             {{ $category->name }}
                         </option>
                     @endforeach
                 </select>
-            </label>
+            </div>
 
-            <label>
-                Urutkan
-                <select name="sort">
-                    <option value="">Terbaru</option>
+            {{-- SORTING --}}
+            <div class="filter-group">
+                <label for="sort">Urutkan</label>
 
-                    @foreach([
-                        'price_asc' => 'Harga termurah',
-                        'price_desc' => 'Harga termahal',
-                        'name' => 'Nama A–Z'
-                    ] as $value => $label)
-                        <option
-                            value="{{ $value }}"
-                            @selected(request('sort') === $value)
-                        >
-                            {{ $label }}
-                        </option>
-                    @endforeach
+                <select name="sort" id="sort">
+                    <option value="latest"
+                        {{ request('sort', 'latest') == 'latest' ? 'selected' : '' }}>
+                        Terbaru
+                    </option>
+
+                    <option value="price_low"
+                        {{ request('sort') == 'price_low' ? 'selected' : '' }}>
+                        Harga terendah
+                    </option>
+
+                    <option value="price_high"
+                        {{ request('sort') == 'price_high' ? 'selected' : '' }}>
+                        Harga tertinggi
+                    </option>
+
+                    <option value="name"
+                        {{ request('sort') == 'name' ? 'selected' : '' }}>
+                        Nama produk A-Z
+                    </option>
                 </select>
-            </label>
-        </div>
+            </div>
 
-        <div class="row">
-            <label>
-                Harga minimum
+            {{-- HARGA MINIMUM --}}
+            <div class="filter-group">
+                <label for="min_price">Harga minimum</label>
+
                 <input
                     type="number"
-                    min="0"
-                    step="0.01"
+                    id="min_price"
                     name="min_price"
+                    placeholder="Harga minimum"
+                    min="0"
                     value="{{ request('min_price') }}"
-                    placeholder="Rp 0"
                 >
-            </label>
+            </div>
 
-            <label>
-                Harga maksimum
+            {{-- HARGA MAKSIMUM --}}
+            <div class="filter-group">
+                <label for="max_price">Harga maksimum</label>
+
                 <input
                     type="number"
-                    min="0"
-                    step="0.01"
+                    id="max_price"
                     name="max_price"
+                    placeholder="Harga maksimum"
+                    min="0"
                     value="{{ request('max_price') }}"
-                    placeholder="Tanpa batas"
                 >
-            </label>
+            </div>
 
-            <label>
-                <input
-                    type="checkbox"
-                    name="ready"
-                    value="1"
-                    @checked(request('ready'))
-                >
-                Stok tersedia
-            </label>
+            {{-- STOK --}}
+            <div class="filter-group filter-stock">
+                <label>
+                    <input
+                        type="checkbox"
+                        name="stock"
+                        value="1"
+                        {{ request('stock') ? 'checked' : '' }}
+                    >
+                    Stok tersedia
+                </label>
+            </div>
 
+            {{-- BUTTON FILTER --}}
             <div class="filter-actions">
                 <button type="submit" class="btn">
                     Terapkan Filter
                 </button>
 
-                <a
-                    class="search-reset"
-                    href="{{ route('shop.index') }}"
-                >
+                <a href="{{ route('shop.index') }}" class="reset-link">
                     Reset
                 </a>
             </div>
+
         </div>
     </form>
 </div>
 
+
+{{-- DAFTAR PRODUK --}}
 <div class="grid product-grid">
+
     @forelse($products as $product)
+
         <article class="card product-card">
-            <a href="{{ route('shop.show', $product->slug) }}">
+
+            {{-- FOTO PRODUK --}}
+            <div class="product-image-wrapper">
                 @if($product->image)
                     <img
                         class="thumb"
@@ -144,60 +179,110 @@
                         loading="lazy"
                     >
                 @else
-                    <div
-                        class="thumb product-placeholder"
-                        aria-hidden="true"
-                    >
-                        □
+                    <div class="thumb product-placeholder">
+                        📦
                     </div>
                 @endif
-            </a>
+            </div>
 
+            {{-- INFORMASI PRODUK --}}
             <div class="product-info">
-                <span class="muted">
-                    {{ $product->category?->name ?? 'Tanpa kategori' }}
-                </span>
 
-                <h3>
-                    <a href="{{ route('shop.show', $product->slug) }}">
-                        {{ $product->name }}
-                    </a>
-                </h3>
+                <h3>{{ $product->name }}</h3>
 
                 <p class="price">
-                    Rp{{ number_format($product->price, 2, ',', '.') }}
+                    Rp{{ number_format($product->price, 0, ',', '.') }}
                 </p>
 
-                <p class="stock {{ $product->stock == 0 ? 'empty' : '' }}">
-                    {{ $product->stock > 0
-                        ? $product->stock . ' tersedia'
-                        : 'Stok habis' }}
+                <p class="stock {{ $product->stock <= 0 ? 'empty' : '' }}">
+                    @if($product->stock > 0)
+                        {{ $product->stock }} stok tersedia
+                    @else
+                        Stok habis
+                    @endif
                 </p>
 
-                <a
-                    class="btn btn-light"
-                    href="{{ route('shop.show', $product->slug) }}"
-                >
-                    Lihat Produk ↗
-                </a>
+                {{-- TAMBAH KE KERANJANG --}}
+                @if($product->stock > 0)
+
+                    @auth
+                        @if(auth()->user()->role === 'customer')
+
+                            <form
+                                action="{{ route('cart.store', $product->id) }}"
+                                method="POST"
+                            >
+                                @csrf
+
+                                <input
+                                    type="hidden"
+                                    name="quantity"
+                                    value="1"
+                                >
+
+                                <button type="submit" class="btn" style="width:100%">
+                                    + Tambah ke Keranjang
+                                </button>
+                            </form>
+
+                        @else
+
+                            <p class="muted">
+                                Login sebagai pelanggan untuk berbelanja.
+                            </p>
+
+                        @endif
+                    @else
+
+                        <a
+                            href="{{ route('login') }}"
+                            class="btn"
+                            style="width:100%; text-align:center"
+                        >
+                            Masuk untuk Belanja
+                        </a>
+
+                    @endauth
+
+                @else
+
+                    <button
+                        type="button"
+                        class="btn-light"
+                        disabled
+                        style="width:100%"
+                    >
+                        Stok Habis
+                    </button>
+
+                @endif
+
             </div>
         </article>
+
     @empty
+
+        {{-- PRODUK TIDAK DITEMUKAN --}}
         <div class="empty-state">
-            <h3>Belum ada produk yang cocok</h3>
+            <h3>Produk tidak ditemukan</h3>
 
             <p class="muted">
-                Coba kata kunci lain atau reset filter pencarian.
+                Coba kata kunci lain atau sesuaikan filter pencarianmu.
             </p>
 
-            <a class="btn-light" href="{{ route('shop.index') }}">
-                Lihat semua produk
+            <a href="{{ route('shop.index') }}" class="btn-light">
+                Lihat Semua Produk
             </a>
         </div>
+
     @endforelse
+
 </div>
 
+
+{{-- PAGINATION --}}
 <div class="pagination-wrapper">
-    {{ $products->links() }}
+    {{ $products->appends(request()->query())->links() }}
 </div>
+
 @endsection

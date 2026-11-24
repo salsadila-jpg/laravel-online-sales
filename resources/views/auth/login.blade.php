@@ -30,7 +30,7 @@
     @endif
 
     {{-- Form Login --}}
-    <form method="POST" action="{{ route('login.process') }}">
+    <form method="POST" action="{{ route('login.store') }}">
         @csrf
 
         <label>

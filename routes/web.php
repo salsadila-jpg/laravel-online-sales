@@ -1,135 +1,119 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use App\Models\User;
 
-use App\Http\Controllers\ProductCatalogController;
+// Customer & public controllers
+use App\Http\Controllers\ShopController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AuthController;
 
-use App\Http\Controllers\Admin\CategoryController;
+// Admin controllers
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
-use App\Http\Controllers\Admin\StockController;
-use App\Http\Controllers\Admin\ShippingServiceController;
+use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 
 /*
 |--------------------------------------------------------------------------
-| Storefront / Katalog Produk
+| PUBLIC / SHOP
 |--------------------------------------------------------------------------
 */
 
-Route::get('/', [ProductCatalogController::class, 'index'])
+Route::get('/', [ShopController::class, 'index'])
+    ->name('home');
+
+Route::get('/shop', [ShopController::class, 'index'])
     ->name('shop.index');
 
-Route::get('/produk/{product:slug}', [ProductCatalogController::class, 'show'])
-    ->name('shop.show');
 
 /*
 |--------------------------------------------------------------------------
-| Login
+| CART
 |--------------------------------------------------------------------------
 */
 
-Route::get('/login', function () {
-    return view('auth.login');
-})->middleware('guest')->name('login');
+Route::get('/cart', [CartController::class, 'index'])
+    ->name('cart.index');
 
-Route::post('/login', function (Request $request) {
-    $credentials = $request->validate([
-        'email' => ['required', 'email'],
-        'password' => ['required'],
-    ]);
+Route::post('/cart/{product}', [CartController::class, 'store'])
+    ->name('cart.store');
 
-    if (Auth::attempt($credentials)) {
-        $request->session()->regenerate();
+Route::put('/cart/{product}', [CartController::class, 'update'])
+    ->name('cart.update');
 
-        return redirect()->intended('/dashboard');
-    }
+Route::delete('/cart/{product}', [CartController::class, 'destroy'])
+    ->name('cart.destroy');
 
-    return back()->withErrors([
-        'email' => 'Email atau password tidak sesuai.',
-    ])->onlyInput('email');
-})->middleware('guest')->name('login.process');
+Route::delete('/cart', [CartController::class, 'clear'])
+    ->name('cart.clear');
+
 
 /*
 |--------------------------------------------------------------------------
-| Register
+| AUTHENTICATION
 |--------------------------------------------------------------------------
 */
 
-Route::get('/register', function () {
-    return view('auth.register');
-})->middleware('guest')->name('register');
+Route::middleware('guest')->group(function () {
 
-Route::post('/register', function (Request $request) {
-    $data = $request->validate([
-        'name' => ['required', 'string', 'max:255'],
-        'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-        'password' => ['required', 'confirmed', 'min:8'],
-    ]);
+    // Login
+    Route::get('/login', [AuthController::class, 'showLogin'])
+        ->name('login');
 
-    $user = User::create([
-        'name' => $data['name'],
-        'email' => $data['email'],
-        'password' => Hash::make($data['password']),
-        'role' => 'customer',
-    ]);
+    Route::post('/login', [AuthController::class, 'login'])
+        ->name('login.store');
 
-    Auth::login($user);
+    // Register
+    Route::get('/register', [AuthController::class, 'showRegister'])
+        ->name('register');
 
-    return redirect()->route('dashboard');
-})->middleware('guest')->name('register.process');
+    Route::post('/register', [AuthController::class, 'register'])
+        ->name('register.store');
+});
 
-/*
-|--------------------------------------------------------------------------
-| Dashboard
-|--------------------------------------------------------------------------
-*/
+// Logout
+Route::post('/logout', [AuthController::class, 'logout'])
+    ->middleware('auth')
+    ->name('logout');
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware('auth')->name('dashboard');
 
 /*
 |--------------------------------------------------------------------------
-| Logout
-|--------------------------------------------------------------------------
-*/
-
-Route::post('/logout', function (Request $request) {
-    Auth::logout();
-
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
-
-    return redirect()->route('login');
-})->middleware('auth')->name('logout');
-
-/*
-|--------------------------------------------------------------------------
-| Shopping Cart - M5.3
+| CUSTOMER
 |--------------------------------------------------------------------------
 */
 
 Route::middleware(['auth', 'role:customer'])->group(function () {
-    Route::get('/keranjang', [CartController::class, 'index'])
-        ->name('cart.index');
 
-    Route::post('/keranjang/{product}', [CartController::class, 'store'])
-        ->name('cart.store');
+    // Checkout
+    Route::get('/checkout', [CheckoutController::class, 'index'])
+        ->name('checkout.index');
 
-    Route::patch('/keranjang/{product}', [CartController::class, 'update'])
-        ->name('cart.update');
+    Route::post('/checkout', [CheckoutController::class, 'store'])
+        ->name('checkout.store');
 
-    Route::delete('/keranjang/{product}', [CartController::class, 'destroy'])
-        ->name('cart.destroy');
+    // Orders
+    Route::get('/orders', [OrderController::class, 'index'])
+        ->name('orders.index');
+
+    Route::get('/orders/{order}', [OrderController::class, 'show'])
+        ->name('orders.show');
+
+    // Profile
+    Route::get('/profile', [ProfileController::class, 'show'])
+        ->name('profile.edit');
+
+    Route::put('/profile', [ProfileController::class, 'update'])
+        ->name('profile.update');
 });
+
 
 /*
 |--------------------------------------------------------------------------
-| Admin
+| ADMIN
 |--------------------------------------------------------------------------
 */
 
@@ -138,43 +122,23 @@ Route::prefix('admin')
     ->middleware(['auth', 'role:admin'])
     ->group(function () {
 
-        // Kategori
-        Route::get('/categories', [CategoryController::class, 'index'])
-            ->name('categories.index');
+        // Dashboard
+        Route::get('/dashboard', [DashboardController::class, 'index'])
+            ->name('dashboard');
 
-        Route::post('/categories', [CategoryController::class, 'store'])
-            ->name('categories.store');
+        // Product CRUD
+        Route::resource('products', AdminProductController::class);
 
-        Route::put('/categories/{category}', [CategoryController::class, 'update'])
-            ->name('categories.update');
+        // Category CRUD
+        Route::resource('categories', AdminCategoryController::class);
 
-        Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])
-            ->name('categories.destroy');
+        // Order management
+        Route::get('/orders', [AdminOrderController::class, 'index'])
+            ->name('orders.index');
 
-        // Produk
-        Route::resource('products', AdminProductController::class)
-            ->except('show');
+        Route::get('/orders/{order}', [AdminOrderController::class, 'show'])
+            ->name('orders.show');
 
-        // Stok
-        Route::get('/stock', [StockController::class, 'index'])
-            ->name('stock.index');
-
-        Route::get('/stock/create', [StockController::class, 'create'])
-            ->name('stock.create');
-
-        Route::post('/stock', [StockController::class, 'store'])
-            ->name('stock.store');
-
-        // Layanan Ekspedisi
-        Route::get('/shipping', [ShippingServiceController::class, 'index'])
-            ->name('shipping.index');
-
-        Route::post('/shipping', [ShippingServiceController::class, 'store'])
-            ->name('shipping.store');
-
-        Route::put('/shipping/{shippingService}', [ShippingServiceController::class, 'update'])
-            ->name('shipping.update');
-
-        Route::delete('/shipping/{shippingService}', [ShippingServiceController::class, 'destroy'])
-            ->name('shipping.destroy');
+        Route::put('/orders/{order}', [AdminOrderController::class, 'update'])
+            ->name('orders.update');
     });
