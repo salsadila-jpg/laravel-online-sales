@@ -2,97 +2,158 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', 'Dashboard') · Admin Ruang Belanja</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>@yield('title', 'Dashboard Admin') - Admin Toko Online</title>
+
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     <link rel="stylesheet" href="{{ asset('css/store.css') }}">
 </head>
 <body>
 
-<div class="admin-wrap">
+    {{-- NAVBAR ADMIN --}}
+    <header class="navbar">
+        <div class="container navbar-content">
 
-    <aside class="admin-side">
-
-        <a class="brand" href="{{ route('admin.categories.index') }}">
-            ruangbelanja.
-        </a>
-
-        <div class="eyebrow">Ruang Pengelola</div>
-
-        <a href="{{ route('admin.categories.index') }}"
-            @if(request()->routeIs('admin.categories.*'))
-                aria-current="page"
-            @endif>
-            Kategori
-        </a>
-
-        <a href="{{ route('admin.products.index') }}"
-            @if(request()->routeIs('admin.products.*'))
-                aria-current="page"
-            @endif>
-            Produk
-        </a>
-
-        @if(Route::has('admin.stock.index'))
-            <a href="{{ route('admin.stock.index') }}"
-                @if(request()->routeIs('admin.stock.*'))
-                    aria-current="page"
-                @endif>
-                Stok & Barang Masuk
+            <a href="{{ route('admin.dashboard') }}" class="navbar-brand">
+                Admin Toko Online
             </a>
-        @endif
 
-        @if(Route::has('admin.shipping.index'))
-            <a href="{{ route('admin.shipping.index') }}"
-                @if(request()->routeIs('admin.shipping.*'))
-                    aria-current="page"
-                @endif>
-                Ekspedisi
-            </a>
-        @endif
+            <div class="navbar-menu">
 
-        @if(Route::has('admin.orders.index'))
-            <a href="{{ route('admin.orders.index') }}"
-                @if(request()->routeIs('admin.orders.*'))
-                    aria-current="page"
-                @endif>
-                Transaksi
-            </a>
-        @endif
+                @auth
+                    <span class="navbar-user">
+                        Halo, {{ Auth::user()->name }}
+                    </span>
 
-        <a href="{{ route('shop.index') }}">
-            ↗ Lihat Toko
-        </a>
+                    <form action="{{ route('logout') }}"
+                          method="POST"
+                          style="display: inline;">
+                        @csrf
 
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
-            <button type="submit" class="btn-light">
-                Keluar
-            </button>
-        </form>
+                        <button type="submit" class="btn btn-danger">
+                            Logout
+                        </button>
+                    </form>
+                @endauth
 
-    </aside>
-
-    <main class="admin-main">
-
-        <div class="admin-context">
-            <span>
-                Administrasi / @yield('title', 'Dashboard')
-            </span>
-
-            <span>
-                {{ auth()->user()->name }} · Admin
-            </span>
+            </div>
         </div>
+    </header>
 
-        @include('layouts.flash')
 
-        @yield('content')
+    {{-- LAYOUT ADMIN --}}
+    <div class="container admin-layout">
 
-    </main>
+        {{-- SIDEBAR --}}
+        <aside class="admin-sidebar">
 
-</div>
+            <div class="card sidebar-card">
 
-<script src="{{ asset('js/store.js') }}" defer></script>
+                <h3>Menu Admin</h3>
+
+                <nav class="admin-nav">
+
+                    <a href="{{ route('admin.dashboard') }}"
+                       class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                        Dashboard
+                    </a>
+
+                    <a href="{{ route('admin.products.index') }}"
+                       class="{{ request()->routeIs('admin.products.*') ? 'active' : '' }}">
+                        Produk
+                    </a>
+
+                    <a href="{{ route('admin.categories.index') }}"
+                       class="{{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
+                        Kategori
+                    </a>
+
+                    <a href="{{ route('admin.orders.index') }}"
+                       class="{{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
+                        Pesanan
+                    </a>
+
+                    <a href="{{ route('admin.shipping-services.index') }}"
+                       class="{{ request()->routeIs('admin.shipping-services.*') ? 'active' : '' }}">
+                        Layanan Pengiriman
+                    </a>
+
+                    <a href="{{ route('admin.stocks.index') }}"
+                       class="{{ request()->routeIs('admin.stocks.*') ? 'active' : '' }}">
+                        Stok
+                    </a>
+
+                </nav>
+
+            </div>
+
+        </aside>
+
+
+        {{-- KONTEN UTAMA --}}
+        <main class="admin-content">
+
+            {{-- JUDUL HALAMAN --}}
+            <div class="admin-page-heading">
+                <h1>@yield('heading', 'Dashboard Admin')</h1>
+            </div>
+
+
+            {{-- FLASH MESSAGE SUKSES --}}
+            @if (session('success'))
+                <div class="alert alert-success">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+
+            {{-- FLASH MESSAGE ERROR --}}
+            @if (session('error'))
+                <div class="alert alert-danger">
+                    {{ session('error') }}
+                </div>
+            @endif
+
+
+            {{-- VALIDASI ERROR --}}
+            @if ($errors->any())
+                <div class="alert alert-danger">
+                    <strong>Terjadi kesalahan:</strong>
+
+                    <ul>
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+
+            {{-- ISI HALAMAN --}}
+            @yield('content')
+
+        </main>
+
+    </div>
+
+
+    {{-- FOOTER --}}
+    <footer class="footer">
+        <div class="container">
+            <p>
+                &copy; {{ date('Y') }} Admin Toko Online.
+                All Rights Reserved.
+            </p>
+        </div>
+    </footer>
+
+
+    {{-- JAVASCRIPT --}}
+    <script src="{{ asset('js/store.js') }}"></script>
+
+    @stack('scripts')
 
 </body>
 </html>

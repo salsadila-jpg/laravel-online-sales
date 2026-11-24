@@ -2,58 +2,38 @@
 
 use Illuminate\Support\Facades\Route;
 
-// Customer & public controllers
+// Authentication Controllers
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Auth\LogoutController;
+
+// Customer Controllers
 use App\Http\Controllers\ShopController;
+use App\Http\Controllers\ProductCatalogController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
-use App\Http\Controllers\OrderController;
+use App\Http\Controllers\CustomerOrderController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\AuthController;
 
-// Admin controllers
+// Admin Controllers
 use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\ProductController as AdminProductController;
-use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
-use App\Http\Controllers\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\ShippingServiceController;
+use App\Http\Controllers\Admin\StockController;
 
 /*
 |--------------------------------------------------------------------------
-| PUBLIC / SHOP
+| Homepage
 |--------------------------------------------------------------------------
 */
 
 Route::get('/', [ShopController::class, 'index'])
     ->name('home');
 
-Route::get('/shop', [ShopController::class, 'index'])
-    ->name('shop.index');
-
-
 /*
 |--------------------------------------------------------------------------
-| CART
-|--------------------------------------------------------------------------
-*/
-
-Route::get('/cart', [CartController::class, 'index'])
-    ->name('cart.index');
-
-Route::post('/cart/{product}', [CartController::class, 'store'])
-    ->name('cart.store');
-
-Route::put('/cart/{product}', [CartController::class, 'update'])
-    ->name('cart.update');
-
-Route::delete('/cart/{product}', [CartController::class, 'destroy'])
-    ->name('cart.destroy');
-
-Route::delete('/cart', [CartController::class, 'clear'])
-    ->name('cart.clear');
-
-
-/*
-|--------------------------------------------------------------------------
-| AUTHENTICATION
+| Authentication
 |--------------------------------------------------------------------------
 */
 
@@ -75,18 +55,47 @@ Route::middleware('guest')->group(function () {
 });
 
 // Logout
-Route::post('/logout', [AuthController::class, 'logout'])
+Route::post('/logout', LogoutController::class)
     ->middleware('auth')
     ->name('logout');
 
+/*
+|--------------------------------------------------------------------------
+| Product Catalog
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/products', [ProductCatalogController::class, 'index'])
+    ->name('products.index');
+
+Route::get('/products/{product}', [ProductCatalogController::class, 'show'])
+    ->name('products.show');
 
 /*
 |--------------------------------------------------------------------------
-| CUSTOMER
+| Customer Routes
 |--------------------------------------------------------------------------
 */
 
 Route::middleware(['auth', 'role:customer'])->group(function () {
+
+    // Customer Dashboard
+    Route::get('/dashboard', function () {
+        return redirect()->route('home');
+    })->name('dashboard');
+
+    // Shopping Cart
+    Route::get('/cart', [CartController::class, 'index'])
+        ->name('cart.index');
+
+    Route::post('/cart/{product}', [CartController::class, 'store'])
+        ->name('cart.store');
+
+    Route::patch('/cart/{product}', [CartController::class, 'update'])
+        ->name('cart.update');
+
+    Route::delete('/cart/{product}', [CartController::class, 'destroy'])
+        ->name('cart.destroy');
 
     // Checkout
     Route::get('/checkout', [CheckoutController::class, 'index'])
@@ -95,14 +104,14 @@ Route::middleware(['auth', 'role:customer'])->group(function () {
     Route::post('/checkout', [CheckoutController::class, 'store'])
         ->name('checkout.store');
 
-    // Orders
-    Route::get('/orders', [OrderController::class, 'index'])
+    // Customer Orders
+    Route::get('/orders', [CustomerOrderController::class, 'index'])
         ->name('orders.index');
 
-    Route::get('/orders/{order}', [OrderController::class, 'show'])
+    Route::get('/orders/{order}', [CustomerOrderController::class, 'show'])
         ->name('orders.show');
 
-    // Profile
+    // Customer Profile
     Route::get('/profile', [ProfileController::class, 'show'])
         ->name('profile.edit');
 
@@ -110,10 +119,9 @@ Route::middleware(['auth', 'role:customer'])->group(function () {
         ->name('profile.update');
 });
 
-
 /*
 |--------------------------------------------------------------------------
-| ADMIN
+| Admin Routes
 |--------------------------------------------------------------------------
 */
 
@@ -126,19 +134,38 @@ Route::prefix('admin')
         Route::get('/dashboard', [DashboardController::class, 'index'])
             ->name('dashboard');
 
-        // Product CRUD
-        Route::resource('products', AdminProductController::class);
+        // Product Management
+        Route::resource('products', ProductController::class);
 
-        // Category CRUD
-        Route::resource('categories', AdminCategoryController::class);
+        // Category Management
+        Route::resource('categories', CategoryController::class);
 
-        // Order management
-        Route::get('/orders', [AdminOrderController::class, 'index'])
+        // Order Management
+        Route::get('/orders', [OrderController::class, 'index'])
             ->name('orders.index');
 
-        Route::get('/orders/{order}', [AdminOrderController::class, 'show'])
+        Route::get('/orders/{order}', [OrderController::class, 'show'])
             ->name('orders.show');
 
-        Route::put('/orders/{order}', [AdminOrderController::class, 'update'])
-            ->name('orders.update');
+        // Confirm Pending Order
+        Route::post('/orders/{order}/confirm', [OrderController::class, 'confirm'])
+            ->name('orders.confirm');
+
+        // Update Order Status
+        Route::put('/orders/{order}/status', [OrderController::class, 'updateStatus'])
+            ->name('orders.updateStatus');
+
+        // Cancel Order
+        Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel'])
+            ->name('orders.cancel');
+
+        // Shipping Services
+        Route::resource('shipping-services', ShippingServiceController::class);
+
+        // Stock Management
+        Route::get('/stocks', [StockController::class, 'index'])
+            ->name('stocks.index');
+
+        Route::put('/stocks/{product}', [StockController::class, 'update'])
+            ->name('stocks.update');
     });

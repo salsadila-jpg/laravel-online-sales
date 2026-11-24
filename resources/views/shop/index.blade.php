@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'Pilihan untuk keseharian')
 
@@ -25,8 +25,8 @@
     </div>
 
     <div class="hero-visual">
-        <div class="hero-icon">⌨️</div>
-        <div class="hero-icon">🖱️</div>
+        <div class="hero-icon">âŒ¨ï¸</div>
+        <div class="hero-icon">ðŸ–±ï¸</div>
     </div>
 </section>
 
@@ -43,7 +43,7 @@
 
 {{-- FILTER PRODUK --}}
 <div class="card filters">
-    <form action="{{ route('shop.index') }}" method="GET">
+    <form action="{{ route('home') }}" method="GET">
 
         <div class="filter-grid">
 
@@ -152,7 +152,7 @@
                     Terapkan Filter
                 </button>
 
-                <a href="{{ route('shop.index') }}" class="reset-link">
+                <a href="{{ route('home') }}" class="reset-link">
                     Reset
                 </a>
             </div>
@@ -180,7 +180,7 @@
                     >
                 @else
                     <div class="thumb product-placeholder">
-                        📦
+                        ðŸ“¦
                     </div>
                 @endif
             </div>
@@ -270,7 +270,7 @@
                 Coba kata kunci lain atau sesuaikan filter pencarianmu.
             </p>
 
-            <a href="{{ route('shop.index') }}" class="btn-light">
+            <a href="{{ route('home') }}" class="btn-light">
                 Lihat Semua Produk
             </a>
         </div>
@@ -286,3 +286,4 @@
 </div>
 
 @endsection
+
